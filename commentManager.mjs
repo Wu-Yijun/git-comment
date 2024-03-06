@@ -1,89 +1,67 @@
-function generateLoremText(numParagraphs, numWords, elemTag = { left: "<div>", right: "</div>" }) {
-    var loremText = '';
-    var words = [
-        'Lorem',
-        'ipsum',
-        'dolor',
-        'sit',
-        'amet',
-        'consectetur',
-        'adipiscing',
-        'elit',
-        'sed',
-        'do',
-        'eiusmod',
-        'tempor',
-        'incididunt',
-        'ut',
-        'labore',
-        'et',
-        'dolore',
-        'magna',
-        'aliqua',
-        'Ut',
-        'enim',
-        'ad',
-        'minim',
-        'veniam',
-        'quis',
-        'nostrud',
-        'exercitation',
-        'ullamco',
-        'laboris',
-        'nisi',
-        'ut',
-        'aliquip',
-        'ex',
-        'ea',
-        'commodo',
-        'consequat',
-        'Duis',
-        'aute',
-        'irure',
-        'dolor',
-        'in',
-        'reprehenderit',
-        'in',
-        'voluptate',
-        'velit',
-        'esse',
-        'cillum',
-        'dolore',
-        'eu',
-        'fugiat',
-        'nulla',
-        'pariatur',
-        'Excepteur',
-        'sint',
-        'occaecat',
-        'cupidatat',
-        'non',
-        'proident',
-        'sunt',
-        'in',
-        'culpa',
-        'qui',
-        'officia',
-        'deserunt',
-        'mollit',
-        'anim',
-        'id',
-        'est',
-        'laborum',
-    ];
+import generateLoremText from "./helper.mjs"
 
-    for (var i = 0; i < numParagraphs; i++) {
-        var paragraph = '';
-        for (var j = 0; j < numWords; j++) {
-            var randomWord = words[Math.floor(Math.random() * words.length)];
-            paragraph += randomWord + ' ';
+const templateJSON = {
+    id: 1, // id of comment
+    quoted: true,    // quoted any comment or from article
+    refered: false,  // quoted from article
+    quote_id: 2,    // if (quoted && !refered) id of quoted comment
+    quote_user: "name", // if (quoted && !refered) name of quoted user
+    quote_text: "引用文本 quoted sentences",  // if (quoted)
+    quote_date: new Date(), // if (quoted && !refered) date of quoted comment
+    text: "正文文本 Hello, world"     // contents of this comment
+};
+
+function otouri(obj) {
+    let res = {};
+    for (let item in obj) {
+        if (obj[item] instanceof String) {
+            res[item] = encodeURIComponent(obj[item]);
+        } else if (obj[item] instanceof Date) {
+            res[item] = encodeURIComponent(obj[item].toISOString());
+        } else if (obj[item] instanceof Object) {
+            res[item] = otouri(obj[item]);
+        } else {
+            res[item] = obj[item];
         }
-        loremText += elemTag.left + paragraph + elemTag.right;
-        // loremText += paragraph + '.\n';
-        // loremText += paragraph + '';
     }
-    return loremText;
+    return res;
 }
+function uritoo(obj) {
+    let res = {};
+    for (let item in obj) {
+        if (typeof obj[item] === "string") {
+            res[item] = decodeURIComponent(obj[item]);
+        } else if (typeof obj[item] == "object") {
+            res[item] = uritoo(obj[item]);
+        } else {
+            res[item] = obj[item];
+        }
+    }
+    return res;
+}
+function otojson(obj) {
+    return JSON.stringify(otouri(obj));
+}
+function jsontoo(json){
+    return uritoo(JSON.parse(json));
+}
+
+// console.log(otojson(templateJSON));
+
+function parseToDOM(htmlString) {
+    const tpl = document.createElement('template');
+    tpl.innerHTML = htmlString;
+    return tpl.content;
+}
+function setHTML(dom, className, html) {
+    Array.prototype.forEach.call(dom.getElementsByClassName(className), (el) => {
+        el.innerHTML = html;
+    });
+}
+function setACTION(dom, className, action) {
+    Array.prototype.forEach.call(dom.getElementsByClassName(className), action);
+}
+
 
 
 export default class commentManager {
@@ -95,25 +73,31 @@ export default class commentManager {
             overview: [],
             contents: []
         };
-        this.sampleDom = commentManager.parseToDOM(info.htmlString);
+        this.sampleDom = parseToDOM(info.htmlString);
         this.domContainer = info.dom || document.getElementsByClassName("comment-container")[0] || document.createElement("div");
         this.doms = [];
+        this.json = [];
+        let i=0;
+        for (let j of info.json) {
+                // if(i++==6)
+                //     debugger;
+            this.addJson(j);
+        }
         for (let i = 0; i < this.numberPerPage; i++) {
             this.appendDom();
         }
     }
-    static parseToDOM(htmlString) {
-        const tpl = document.createElement('template');
-        tpl.innerHTML = htmlString;
-        return tpl.content;
-    }
-    static setHTML(dom, className, html) {
-        Array.prototype.forEach.call(dom.getElementsByClassName(className), (el) => {
-            el.innerHTML = html;
-        });
-    }
-    static setACTION(dom, className, action) {
-        Array.prototype.forEach.call(dom.getElementsByClassName(className), action);
+    addJson(j) {
+        let id = "unknown";
+        try {
+            id = j.id;
+            j.json = jsontoo(j.body)
+            console.log(j.json)
+        } catch (e) {
+            console.log("Processing body of #" + id + " interrupted with error:\n", e);
+            j.json = templateJSON;
+        }
+        this.json.push(j);
     }
     appendDom() {
         let a = this.sampleDom.cloneNode(true);
@@ -139,7 +123,27 @@ export default class commentManager {
         })
     }
     getComment(id) {
+        if (id >= 0 && id < this.json.length) {
+            let json = this.json[id];
+            return {
+                hide: false,
+                id: Number(json.json.id),
+                username: String(json.user.login || "Anonymous"),
+                usericon: String(json.user.avatar_url || "./Anonymous.svg"),
+                date: new Date(json.updated_at),
+                quote: {
+                    exist: json.json.quoted,
+                    toolbar: !json.json.refered,
+                    id: json.json.quote_id,
+                    username: json.json.quote_user,
+                    date: json.json.quote_date,
+                    text: json.json.quote_text,
+                },
+                text: json.json.text
+            };
+        }
         return {
+            hide: true,
             id: Math.round(Math.random() * 200),
             username: "Anonymous" + generateLoremText(1, 2, { left: " ", right: " " }),
             usericon: "./Anonymous.svg",
@@ -165,34 +169,36 @@ export default class commentManager {
     setDomComment(index, id) {
         const comment = this.getComment(id);
         let dom = this.getDom(index);
-        commentManager.setHTML(dom, "comment-icon", `<img src="${comment.usericon}">`);
-        commentManager.setHTML(dom, "comment-user", comment.username);
-        commentManager.setHTML(dom, "comment-date", comment.date.toLocaleString());
-        commentManager.setHTML(dom, "comment-id", '#' + comment.id);
+        dom.style.display = comment.hide ? "none" : "block";
+
+        setHTML(dom, "comment-icon", `<img src="${comment.usericon}">`);
+        setHTML(dom, "comment-user", comment.username);
+        setHTML(dom, "comment-date", comment.date.toLocaleString());
+        setHTML(dom, "comment-id", '#' + comment.id);
         if (comment.quote.exist) {
-            commentManager.setACTION(dom, "comment-quote-text", (el) => { el.innerText = comment.quote.text; });
-            commentManager.setACTION(dom, "comment-quote-container", (el) => { el.style.display = "block"; });
+            setACTION(dom, "comment-quote-text", (el) => { el.innerText = comment.quote.text; });
+            setACTION(dom, "comment-quote-container", (el) => { el.style.display = "block"; });
             if (comment.quote.toolbar) {
-                commentManager.setHTML(dom, "comment-quote-id", '#' + comment.quote.id);
-                commentManager.setHTML(dom, "comment-quote-user", comment.quote.username);
-                commentManager.setHTML(dom, "comment-quote-date", comment.quote.date.toLocaleString());
-                commentManager.setACTION(dom, "comment-quote-toolbar", (el) => { el.style.display = "flex"; });
+                setHTML(dom, "comment-quote-id", '#' + comment.quote.id);
+                setHTML(dom, "comment-quote-user", comment.quote.username);
+                setHTML(dom, "comment-quote-date", new Date(comment.quote.date).toLocaleString());
+                setACTION(dom, "comment-quote-toolbar", (el) => { el.style.display = "flex"; });
             } else {
-                commentManager.setACTION(dom, "comment-quote-toolbar", (el) => { el.style.display = "none"; });
+                setACTION(dom, "comment-quote-toolbar", (el) => { el.style.display = "none"; });
             }
         } else {
-            commentManager.setACTION(dom, "comment-quote-container", (el) => { el.style.display = "none"; });
+            setACTION(dom, "comment-quote-container", (el) => { el.style.display = "none"; });
         }
-        commentManager.setHTML(dom, "comment-entry", comment.text);
+        setHTML(dom, "comment-entry", comment.text);
         let overflowed = false;
-        commentManager.setACTION(dom, "comment-entry", (el) => {
+        setACTION(dom, "comment-entry", (el) => {
             if (el.clientHeight < el.scrollHeight)
                 overflowed = true;
         });
-        if(overflowed){
-            commentManager.setACTION(dom, "comment-op-expand", (el) => { el.style.display = "block"; });
-        }else{
-            commentManager.setACTION(dom, "comment-op-expand", (el) => { el.style.display = "none"; });
+        if (overflowed) {
+            setACTION(dom, "comment-op-expand", (el) => { el.style.display = "block"; });
+        } else {
+            setACTION(dom, "comment-op-expand", (el) => { el.style.display = "none"; });
         }
     }
 }

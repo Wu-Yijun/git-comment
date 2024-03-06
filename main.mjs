@@ -1,11 +1,14 @@
 import commentManager from "./commentManager.mjs"
 
+var cmjson = await (await fetch("https://api.github.com/repos/Wu-Yijun/git-comment/issues/2/comments")).json();
 var hstr = await (await fetch("./comment-item.html")).text();
+
 var cm = new commentManager({
-    htmlString: hstr
+    htmlString: hstr,
+    json: cmjson
 });
 for (let i = 0; i < 10; i++)
-    cm.setDomComment(i, 0);
+    cm.setDomComment(i, i);
 
 // let doms = document.getElementsByClassName("comment-container");
 // for (let i = 0; i < doms.length; ++i) {
