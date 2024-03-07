@@ -1,0 +1,40 @@
+<div class="comment-textarea-container">
+    <div class="comment-textarea-header">
+        撰写评论
+    </div>
+    <div class="comment-textarea-content">
+        <div class="comment-textarea-quote">
+            <div class="cur-ptr"><img src="/quote-black.svg" width="20px"></div>
+            <div>
+                <div class="comment-textarea-quote-author cur-ptr txt-de">Author</div>
+                <div class="comment-textarea-quote-sep"></div>
+                <div class="comment-textarea-quote-position cur-ptr txt-de">#1234</div>
+            </div>
+            <div class="comment-textarea-quote-text">引用内容将复制粘贴的html dom 转换为 string文本将复制粘贴的html dom 转换为
+                string文本将复制粘贴的html dom 转换为 string文本</div>
+        </div>
+        <div class="comment-textarea-texts-container">
+            <script>
+                // 将复制粘贴的html dom 转换为 string文本
+                const formatHtmlString = (str) => str?.replace(/[\u00A0-\u9999<>]/gim, (i) => ''.concat('&#', i.charCodeAt(0), ';'));
+                const onPaste = (e) => {
+                    e.preventDefault();
+                    document.execCommand(
+                        'insertHTML',
+                        false,
+                        formatHtmlString(e?.clipboardData.getData('text')),
+                    );
+                    console.log(e);
+                }
+            </script>
+            <div class="comment-textarea-texts" onpaste={onPaste} contenteditable="true"
+                placeholder="说点什么呢......"></div>
+        </div>
+    </div>
+    <div class="comment-textarea-toolbar">
+        <div class="comment-textarea-query">选择样式 这个可以很长，不过没关系，因为我设置了滚动条</div>
+        <div class="comment-textarea-preview comment-textarea-button cur-ptr">预 览</div>
+        <div class="comment-textarea-save comment-textarea-button cur-ptr">暂 存</div>
+        <div class="comment-textarea-submit comment-textarea-button cur-ptr">提 交</div>
+    </div>
+</div>

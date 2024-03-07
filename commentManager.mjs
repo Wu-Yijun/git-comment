@@ -1,4 +1,223 @@
 import generateLoremText from "./helper.mjs";
+import myFloatingNotify from "/MyFloatingNotify.js";
+
+const DefaultSampleGitLogin = {
+    log: `  <img src="/Login.svg" height="20px">
+            登录
+            <img src="/GitHubR.svg" height="15px">
+            <img src="/GithubIcon.svg" height="25px">`,
+    user: ` <img class="Github-Login-User-Icon" src="/GithubIcon.svg" height="25px">
+            <div class="Github-Login-User-Name">UserName</div>`,
+};
+
+class GitControl {
+    oauthInfo = {
+        Owner: "Wu-Yijun",
+        Repo: "git-comment",
+        Issue: "2",
+        CorsUrl: "https://cors-anywhere.azm.workers.dev/",
+        // CorsUrl: "https://cors-anywhere.herokuapp.com/",
+        Scope: "public_repo",
+
+        GitLoginClass: "Github-Login",
+
+        /** Release */
+        // ClientID: "dbcd04607ec374d71003",
+        // ClientSecret: "10d91bdc6fc31ebccc2cf4a9a8f64365e78e24eb",
+        // Url: "https://wu-yijun.github.io/testGitLogin/main.html",
+        /** Debug */
+        ClientID: "16fbb434c9ac82d2bb67",
+        ClientSecret: "37b893febb019776f791e3db171b9fcf6d0e9fcc",
+        Url: "http://localhost:5500/testGitLogin/main.html",
+    };
+    access_token = "";
+    userInfo = {};
+    loggedin = false;
+
+    constructor(oauthInfo) {
+        Object.assign(this.oauthInfo, oauthInfo);
+
+        document.getElementById("SubmitComment").onclick = () => {
+            this.CreateComment(document.getElementById("CommentArea").value);
+        };
+
+        this.access_token = localStorage.getItem("access_token");
+        if (this.access_token && (typeof this.access_token === "string" || this.access_token instanceof String) && this.access_token.length > 0) {
+            this.getInfo();
+            return;
+        }
+        let code = null;
+        let logged = false;
+        try {
+            code = new URLSearchParams(location.search).get("code");
+            if (code)
+                logged = true;
+        } catch (e) {
+            console.log("Error: ", e);
+        }
+        if (logged) {
+            myFloatingNotify(" code = " + code);
+            getAuthorization(code);
+        } else {
+            enableLogin();
+        }
+    };
+
+    static GithubAuthUrl = "https://github.com/login/oauth/authorize";
+    static GithubAccessTokenUrl = "https://github.com/login/oauth/access_token";
+
+    static REQUEST(type = "POST", url, header, data, resposeFun, retried = 3) {
+        var request = new XMLHttpRequest();
+        request.open(type, url, true);
+        request.timeout = 0;
+        request.onreadystatechange = () => {
+            if (!request || request.readyState !== 4) {
+                return;
+            }
+            // The request errored out and we didn't get a response, this will be
+            // handled by onerror instead
+            // With one exception: request that using file: protocol, most browsers
+            // will return status as 0 even though it's a successful request
+            if (request.status === 0 && !(request.responseURL && request.responseURL.indexOf('file:') === 0)) {
+                return;
+            }
+            resposeFun(request);
+            request = null;
+        };
+        request.ontimeout = () => {
+            request = null;
+            if (retried <= 0) {
+                console.error("request Time out!");
+                return;
+            }
+            console.log("request Timeour... Retried... " + retried);
+            this.REQUEST(type, url, header, data, resposeFun, retried - 1);
+        };
+        request.onerror = () => {
+            request = null;
+            if (retried <= 0) {
+                console.error("request Error!");
+                return;
+            }
+            console.log("request Error... Retried... " + retried - 1);
+            this.REQUEST(type, url, header, data, resposeFun, retried - 2);
+        };
+        for (let i in header) {
+            request.setRequestHeader(i, header[i]);
+        }
+        request.send(data);
+    }
+
+    enableLogin(reset = false) {
+        Array.prototype.forEach.call(document.getElementsByClassName("GitLoginClass"), (dom) => {
+            if(reset)
+                dom.innerHTML = DefaultSampleGitLogin.log;
+            dom.onclick = () => {
+                location.href = GitControl.GithubAuthUrl + "?"
+                    + `client_id=${this.oauthInfo.ClientID}` + "&"
+                    + `redirect_uri=${this.oauthInfo.Url}` + "&"
+                    + `scope=${this.oauthInfo.Scope}`;
+            };
+        });
+        myFloatingNotify("You can login to github");
+    }
+
+    // also disable login
+    showInfo() {
+        if(!this.loggedin){
+            myFloatingNotify("You are not logged in yet!!", 2000);
+            this.enableLogin(true);
+            return;
+        }
+        Array.prototype.forEach.call(document.getElementsByClassName("GitLoginClass"), (dom) => {
+            if(reset)
+                dom.innerHTML = DefaultSampleGitLogin.user;
+            dom.onclick = () => {
+            };
+        });
+        myFloatingNotify("You can login to github");
+    }
+
+    getAuthorization(code) {
+        const url = this.oauthInfo.CorsUrl + GitControl.GithubAccessTokenUrl;
+        const header = {
+            "Accept": "application/json",
+            "Content-Type": "application/json;charset=utf-8",
+        };
+        const content = JSON.stringify({
+            code: code,
+            client_id: oauthInfo.ClientID,
+            client_secret: oauthInfo.ClientSecret,
+        });
+        GitControl.REQUEST("POST", url, header, content, (request) => {
+            const info = JSON.parse(request.responseText);
+            if (info.token_type == "bearer") {
+                myFloatingNotify("access_token = " + info.access_token);
+                localStorage.setItem("access_token", info.access_token);
+                this.access_token = info.access_token;
+                /** this will not reload pages. */
+                history.replaceState({ code: code }, '', this.oauthInfo.Url);
+                this.getInfo();
+            }
+        }, 1);
+    }
+
+    getInfo(retried = 3) {
+        const url = "https://api.github.com/user";
+        const header = {
+            "Content-Type": "application/json",
+            "Authorization": "token " + this.access_token,
+        };
+        const data = null;
+        GitControl.REQUEST("GET", url, header, data, (request) => {
+            let userInfo = null;
+            try {
+                userInfo = request.responseText;
+                userInfo = JSON.parse(userInfo);
+            } catch (e) {
+                console.log(e);
+                failed = true;
+            }
+            console.log(userInfo);
+            if (failed) {
+                if (retried > 0) {
+                    myFloatingNotify("Retrying Authorization... " + retried);
+                    GitControl.getInfo(access_token, retried - 1);
+                } else {
+                    myFloatingNotify("Authorization Invalid! Need to login again!");
+                    localStorage.removeItem("access_token");
+                    this.enableLogin();
+                }
+                return;
+            } else {
+                myFloatingNotify("Successfully get userInfo!", 2 * 1000);
+                this.userInfo = userInfo;
+                this.loggedin = true;
+                this.showInfo();
+                return;
+            }
+        });
+    }
+
+    CreateComment(content, callback) {
+        if (!this.loggedin) {
+            myFloatingNotify("You are not logged in yet!!", 2000);
+            this.enableLogin(true);
+            return;
+        }
+        const url = `https://api.github.com/repos/${oauthInfo.Owner}/${oauthInfo.Repo}/issues/${oauthInfo.Issue}/comments`;
+        const header = {
+            "Accept": "application/vnd.github.v3.full+json",
+            "Authorization": "token " + this.access_token,
+            "Content-Type": "application/json;charset=utf-8",
+        };
+        const data = JSON.stringify({
+            body: content,
+        });
+        GitControl.REQUEST("POST", url, header, data, callback);
+    }
+};
+
 
 const templateJSON = {
     id: 1, // id of comment
@@ -62,15 +281,15 @@ function setACTION(dom, className, action) {
     Array.prototype.forEach.call(dom.getElementsByClassName(className), action);
 }
 
-
-
 export default class commentManager {
     constructor(info) {
         this.numberPerPage = info.numberPerPage || 10;
         this.sampleDom = parseToDOM(info.htmlString);
+        this.sampleTextarea = parseToDOM(info.textarea);
         this.domContainer = info.dom || document.getElementsByClassName("comment-contents")[0] || document.createElement("div");
         this.doms = [];
         this.comments = [];
+        this.textdoms = [];
 
         let i = 0;
         for (let j of info.json) {
@@ -79,6 +298,8 @@ export default class commentManager {
         for (let i = 0; i < this.numberPerPage; i++) {
             this.appendDom();
         }
+
+        this.bindTextarea();
     }
     addJson(j) {
         let id = "unknown";
@@ -178,5 +399,13 @@ export default class commentManager {
         } else {
             setACTION(dom, "comment-op-expand", (el) => { el.style.display = "none"; });
         }
+    }
+
+    bindTextarea() {
+        Array.prototype.forEach.call(document.getElementsByClassName("comment-textarea"), (dom) => {
+            let a = this.sampleTextarea.cloneNode(true);
+            dom.append(a);
+            this.textdoms.push(dom.lastChild);
+        });
     }
 }
