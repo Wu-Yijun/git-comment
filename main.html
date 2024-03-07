@@ -1,10 +1,292 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <link href="./comment-style.css" rel="stylesheet" type="text/css">
     <script type="module" src="./main.mjs"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        .comment-container {
+            margin: 10px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            align-content: center;
+        }
+
+        .comment-container .comment-header {
+            width: auto;
+            /* width: 100%; */
+            padding: 10px;
+            align-content: center;
+            border-bottom: 1px solid #777;
+            background-color: #7772;
+            font-weight: bold;
+
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            align-content: flex-start;
+            flex-wrap: nowrap;
+        }
+
+        .comment-container .comment-contents {
+            width: auto;
+            /* width: 100%; */
+            /* padding: 10px; */
+            align-content: center;
+            min-height: 10px;
+        }
+
+        .comment-container .comment-textarea {
+            width: auto;
+            /* width: 100%; */
+            /* padding: 10px; */
+            align-content: center;
+            min-height: 10px;
+            /* border-top: 2px solid #bbbb; */
+        }
+
+        .comment-container .comment-footer {
+            width: auto;
+            /* width: 100%; */
+            padding: 5px;
+            align-content: center;
+        }
+
+        .comment-container .comment-footer div {
+            text-align: center;
+            font-size: small;
+            color: gray;
+        }
+
+        .comment-header .Github-Login {
+            display: flex;
+            align-items: center;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            justify-content: space-evenly;
+            column-gap: 3px;
+            user-select: none;
+        }
+    </style>
 </head>
+
 <body>
-    <div class="comment-container" ></div>
+    <div class="comment-container">
+        <div class="comment-header">
+            <div>评论区</div>
+            <div class="Github-Login">
+                <img src="/Login.svg" height="20px">
+                登录
+                <img src="/GitHubR.svg" height="15px">
+                <img src="/GithubIcon.svg" height="25px">
+            </div>
+        </div>
+        <div class="comment-contents">
+            <!-- needless to fill contents -->
+            <!-- js will generate automatically -->
+        </div>
+        <div class="comment-textarea">
+            <!-- needless to fill contents -->
+            <!-- js will generate automatically -->
+            <style>
+                .comment-textarea-container {
+                    margin: 10px;
+                    border-radius: 10px;
+                    background-color: #9999;
+                    /* height: 100px; */
+                }
+
+                .comment-textarea-container .comment-textarea-header {
+                    font-size: large;
+                    font-weight: bolder;
+                    padding: 10px;
+                    border-bottom: 1px dashed gray;
+                }
+
+
+                .comment-textarea-container .comment-textarea-texts {
+                    margin: 0;
+                    padding: 0;
+                    display: block;
+                    width: auto;
+                    min-height: 100px;
+                    border: none;
+                    outline: 0;
+                    color: black;
+                }
+
+                .comment-textarea-container .comment-textarea-texts-container {
+                    margin: 10px;
+                    width: auto;
+                    padding: 10px;
+                    background-color: white;
+                    border: 1px solid #444;
+                    border-radius: 2px;
+                    word-wrap: break-word;
+                    overflow-y: auto;
+                    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1), 0 0 8px rgba(167, 167, 167, 0.6);
+                }
+
+                .comment-textarea-quote {
+                    display: flex;
+                    flex-direction: row;
+                    align-items: center;
+                    justify-content: flex-start;
+
+                    margin-left: 20px;
+                    margin-right: 20px;
+                    margin-top: 10px;
+                    column-gap: 15px;
+                    padding: 5px 15px 5px 15px;
+                    border: 1px dashed gray;
+                    border-radius: 20px;
+                    background-color: #aaaa;
+
+                    font-weight: bold;
+                }
+
+                .comment-textarea-quote-text {
+                    opacity: 0.7;
+                    font-size: small;
+                    overflow-y: hidden;
+                    display: -webkit-box;
+                    text-overflow: ellipsis;
+                    overflow-y: hidden;
+                    -webkit-line-clamp: 2;
+                    -webkit-box-orient: vertical;
+                    line-height: 150%;
+                }
+
+                .comment-textarea-quote-position {
+                    font-size: small;
+                }
+
+                .comment-textarea-quote-sep {
+                    height: 1px;
+                    width: auto;
+                    background-color: #777;
+                    margin: 1px;
+                    /* box-shadow: 0 0 2px 0px black;; */
+                }
+
+                .comment-textarea-container .comment-textarea-toolbar {
+                    display: flex;
+                    flex-direction: row;
+                    flex-wrap: nowrap;
+                    align-items: center;
+                    justify-content: flex-start;
+                    column-gap: 10px;
+                    padding-left: 20px;
+                    padding-right: 20px;
+                    padding-bottom: 10px;
+                }
+
+                .comment-textarea-query {
+                    margin-right: auto;
+
+                    padding: 8px;
+                    background-color: white;
+                }
+
+                .comment-textarea-preview {
+                    margin-left: auto;
+                    font-weight: bolder;
+                    font-size: large;
+                    padding: 8px;
+                    padding-left: 15px;
+                    padding-right: 15px;
+                    background-color: #21a313;
+                    border-radius: 15px;
+                    color: #ffffff;
+                }
+
+                .comment-textarea-save {
+                    font-weight: bolder;
+                    font-size: large;
+                    padding: 8px;
+                    padding-left: 15px;
+                    padding-right: 15px;
+                    background-color: #ee9747;
+                    border-radius: 15px;
+                    color: #ffffff;
+                }
+
+                .comment-textarea-submit {
+                    font-weight: bolder;
+                    font-size: large;
+                    padding: 8px;
+                    padding-left: 15px;
+                    padding-right: 15px;
+                    background-color: #0073ff;
+                    border-radius: 15px;
+                    color: #ffffff;
+                }
+
+                .comment-textarea-button {
+                    opacity: 0.4;
+                    transition: opacity ease-in-out 300ms, text-shadow ease-in-out 300ms, color ease-in-out 150ms;
+                    color: black;
+                    text-shadow: none;
+                    user-select: none;
+                }
+
+                .comment-textarea-button:hover {
+                    opacity: 1.0;
+                    color: wheat;
+                    text-shadow: 0 0 2px #7777;
+                }
+            </style>
+            <div class="comment-textarea-container">
+                <div class="comment-textarea-header">
+                    撰写评论
+                </div>
+                <div class="comment-textarea-content">
+                    <div class="comment-textarea-quote">
+                        <div><img src="/quote-black.svg" width="20px"></div>
+                        <div>
+                            <div class="comment-textarea-quote-author">Author</div>
+                            <div class="comment-textarea-quote-sep"></div>
+                            <div class="comment-textarea-quote-position">#1234</div>
+                        </div>
+                        <div class="comment-textarea-quote-text">引用内容将复制粘贴的html dom 转换为 string文本将复制粘贴的html dom 转换为
+                            string文本将复制粘贴的html dom 转换为 string文本</div>
+                    </div>
+                    <div class="comment-textarea-texts-container">
+                        <script>
+                            // 将复制粘贴的html dom 转换为 string文本
+                            const formatHtmlString = (str) => str?.replace(/[\u00A0-\u9999<>]/gim, (i) => ''.concat('&#', i.charCodeAt(0), ';'));
+                            const onPaste = (e) => {
+                                e.preventDefault();
+                                document.execCommand(
+                                    'insertHTML',
+                                    false,
+                                    formatHtmlString(e?.clipboardData.getData('text')),
+                                );
+                                console.log(e);
+                            }
+                        </script>
+                        <div class="comment-textarea-texts" onpaste={onPaste} contenteditable="true"
+                            placeholder="说点什么呢......"></div>
+                    </div>
+                </div>
+                <div class="comment-textarea-toolbar">
+                    <div class="comment-textarea-query">选择样式</div>
+                    <div class="comment-textarea-preview comment-textarea-button">预 览</div>
+                    <div class="comment-textarea-save comment-textarea-button">暂 存</div>
+                    <div class="comment-textarea-submit comment-textarea-button">提 交</div>
+                </div>
+            </div>
+        </div>
+        <div class="comment-footer">
+            <div>评论区末尾</div>
+        </div>
+
+    </div>
 </body>
+
 </html>

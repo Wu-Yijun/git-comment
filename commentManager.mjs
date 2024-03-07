@@ -1,4 +1,4 @@
-import generateLoremText from "./helper.mjs"
+import generateLoremText from "./helper.mjs";
 
 const templateJSON = {
     id: 1, // id of comment
@@ -42,7 +42,7 @@ function uritoo(obj) {
 function otojson(obj) {
     return JSON.stringify(otouri(obj));
 }
-function jsontoo(json){
+function jsontoo(json) {
     return uritoo(JSON.parse(json));
 }
 
@@ -67,20 +67,13 @@ function setACTION(dom, className, action) {
 export default class commentManager {
     constructor(info) {
         this.numberPerPage = info.numberPerPage || 10;
-        this.comments = info.comments || {
-            url: null,
-            number: 0,
-            overview: [],
-            contents: []
-        };
         this.sampleDom = parseToDOM(info.htmlString);
-        this.domContainer = info.dom || document.getElementsByClassName("comment-container")[0] || document.createElement("div");
+        this.domContainer = info.dom || document.getElementsByClassName("comment-contents")[0] || document.createElement("div");
         this.doms = [];
-        this.json = [];
-        let i=0;
+        this.comments = [];
+
+        let i = 0;
         for (let j of info.json) {
-                // if(i++==6)
-                //     debugger;
             this.addJson(j);
         }
         for (let i = 0; i < this.numberPerPage; i++) {
@@ -91,56 +84,41 @@ export default class commentManager {
         let id = "unknown";
         try {
             id = j.id;
-            j.json = jsontoo(j.body)
-            console.log(j.json)
+            j.json = jsontoo(j.body);
+            console.log(j.json);
         } catch (e) {
             console.log("Processing body of #" + id + " interrupted with error:\n", e);
             j.json = templateJSON;
         }
-        this.json.push(j);
+        this.comments.push({
+            hide: false,
+            id: Number(j.json.id),
+            username: String(j.user.login || "Anonymous"),
+            usericon: String(j.user.avatar_url || "./Anonymous.svg"),
+            date: new Date(j.updated_at),
+            quote: {
+                exist: j.json.quoted,
+                toolbar: !j.json.refered,
+                id: j.json.quote_id,
+                username: j.json.quote_user,
+                date: j.json.quote_date,
+                text: j.json.quote_text,
+            },
+            text: String(j.json.text)
+        });
     }
     appendDom() {
         let a = this.sampleDom.cloneNode(true);
         this.domContainer.append(a);
         this.doms.push(this.domContainer.lastChild);
+        this.domContainer.lastChild.style.display = "none";
     }
-    addComment(info) {
-        const id = ++this.comments.number;
-        this.comments.overview.push({
-            id: id,
-            username: info.username || "Anonymous",
-            usericon: info.usericon || "./Anonymous.svg",
-            date: info.date || new Date(),
-            quote: {
-                exist: info.quoted,
-                toolbar: info.quoted && info.toolbar,
-                id: info.quote_id,
-                text: info.quote_text,
-            },
-        })
-        this.comments.contents.push({
-            id: id,
-        })
+    newComment(info) {
+
     }
     getComment(id) {
-        if (id >= 0 && id < this.json.length) {
-            let json = this.json[id];
-            return {
-                hide: false,
-                id: Number(json.json.id),
-                username: String(json.user.login || "Anonymous"),
-                usericon: String(json.user.avatar_url || "./Anonymous.svg"),
-                date: new Date(json.updated_at),
-                quote: {
-                    exist: json.json.quoted,
-                    toolbar: !json.json.refered,
-                    id: json.json.quote_id,
-                    username: json.json.quote_user,
-                    date: json.json.quote_date,
-                    text: json.json.quote_text,
-                },
-                text: json.json.text
-            };
+        if (id >= 0 && id < this.comments.length) {
+            return this.comments[id];
         }
         return {
             hide: true,

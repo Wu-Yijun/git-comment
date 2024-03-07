@@ -32,4 +32,49 @@
 
 存储在body结构体里。
 
-然后对它进行分析处理。
+然后对它进行分析处理，最终完成了从gitissues 上读取评论的功能。
+
+#### 登录 Oauth
+
+从 `gittalk` 的登录处抓取到的请求为：`https://github.com/login/oauth/authorize?client_id=e46f6dec7c07145c652c&redirect_uri=https%3A%2F%2Fgitalk.github.io%2F&scope=public_repo` 解析后为
+
+![alt text](images/image2.png)
+
+登录完成之后的重定向为：`https://gitalk.github.io/?code=534836be7e0bc8eb7e9f`
+
+我们发现，多了一个 code ，这也就是 github 返回的授权码。
+
+我们将`client_id`,`client_secret`,`code`三个查询集成到链接 `https://github.com/login/oauth/access_token` 下，用post请求可以获得一个github返回的access_token。
+
+但是，由于github的跨域限制，导致我们不能将client_secret明文集成到js代码中（出于有安全性考虑）。因此我们需要通过代理转发请求。
+我们的方法来自下面的文章 [Github Oauth Login – Browser-Side](https://blog.vjeux.com/2012/javascript/github-oauth-login-browser-side.html "Github Oauth 登录 – 浏览器端")
+如果有php服务器，那么是可以运行的，但是，github pages 是静态页面，不能允许php。因此我抛弃了这种方法。
+
+最终，我选择通过 https://cors-anywhere.herokuapp.com/ 临时代理跨域请求。我希望能找到一个轻量级的免费的服务器来代理我的请求。
+
+
+
+#### 获取数据
+
+这一步比较简单，关键点就是将认证信息`xmlHttp.setRequestHeader("Authorization", "token " + access_token);`加入到头内。
+
+#### 发送评论
+
+起初，我使用了 **Octokit** 的集成工具，但是考虑到体量，以及 Octokit 也不能完成oauth认证的缺陷，我决定完全弃用它。
+
+接着，我们参考了 **gitalk** 的POST方法，然后利用跨域代理 `https://cors-anywhere.azm.workers.dev/` 来完成认证过程中受限制的POST请求。
+
+### 整合到评论区... 
+
+目前已经完成了一个基本的 commentManager 工具，可以从github的issue转化为合适的评论进行显示。
+
+![alt text](images/image3.png)
+
+我们需要进一步将此评论化为带有登录，回复功能的评论区。
+
+#### 评论区回复功能
+
+在写回复功能时，我发现了一个有意思的事情，`div`可以有一个可编辑选项，用于替代`textarea`，是非常好用的。
+
+我们调好了样式，接着就是关于html或纯文本样式的选择关系问题（这个我们之后再搞，现在先不管）
+目前已经实现了自动缩放等功能

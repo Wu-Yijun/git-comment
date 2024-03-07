@@ -148,14 +148,14 @@
 .comment-entry-footer .comment-op-dislike:hover{
     background-color: rgba(17, 141, 19, 0.474);
 }
-.comment-entry-footer .comment-op-delete:hover{
-    background-color: rgba(13, 78, 136, 0.495);
-}
 .comment-entry-footer .comment-op-claim-abuse:hover{
-    background-color: rgba(183, 13, 174, 0.45);
+    background-color: rgba(183, 13, 166, 0.45);
+}
+.comment-entry-footer .comment-op-edit:hover{
+    background-color: rgba(35, 110, 201, 0.495);
 }
 .comment-entry-footer .comment-op-reply:hover{
-    background-color: rgba(147, 147, 147, 0.518);
+    background-color: rgba(31, 203, 177, 0.518);
 }
 
 .comment-entry-footer span{
@@ -173,6 +173,6 @@
     color: #ccc9;
 }
 
-.comment-entry-footer .comment-op-reply{
+.comment-entry-footer .comment-op-edit{
     margin-left: auto;
 }
