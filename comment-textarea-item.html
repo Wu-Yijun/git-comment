@@ -14,21 +14,7 @@
                 string文本将复制粘贴的html dom 转换为 string文本</div>
         </div>
         <div class="comment-textarea-texts-container">
-            <script>
-                // 将复制粘贴的html dom 转换为 string文本
-                const formatHtmlString = (str) => str?.replace(/[\u00A0-\u9999<>]/gim, (i) => ''.concat('&#', i.charCodeAt(0), ';'));
-                const onPaste = (e) => {
-                    e.preventDefault();
-                    document.execCommand(
-                        'insertHTML',
-                        false,
-                        formatHtmlString(e?.clipboardData.getData('text')),
-                    );
-                    console.log(e);
-                }
-            </script>
-            <div class="comment-textarea-texts" onpaste={onPaste} contenteditable="true"
-                placeholder="说点什么呢......"></div>
+            <div class="comment-textarea-texts" contenteditable="true" placeholder="说点什么呢......"></div>
         </div>
     </div>
     <div class="comment-textarea-toolbar">
