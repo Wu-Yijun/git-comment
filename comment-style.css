@@ -54,6 +54,7 @@
     background-color: #7774;
     border-radius: 10px;
     padding: 5px;
+    margin-bottom: 10px;
 
     font-weight: bold;
     font-size: small;
@@ -445,4 +446,60 @@
 
 .txt-de:hover {
     text-decoration: underline;
+}
+
+
+
+.Github-Login-Menu-Container {
+    position: absolute;
+    left: auto;
+}
+
+.Github-Login-Menu {
+    position: absolute;
+    top: 1em;
+    left: 20px;
+    width: max-content;
+
+    background-color: #ccca;
+    border: 1px solid #424242;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    align-content: space-around;
+    border-radius: 5px;
+
+    font-size: small;
+    font-weight: normal;
+    box-shadow: 0px 0px 3px 1px #b4b4b4;
+
+    transition: all ease-out 0.7s;
+    overflow-y: hidden;
+
+    max-height: 0px;
+    opacity: 0;
+}
+
+.Github-Login-Menu>div {
+    width: -webkit-fill-available;
+    padding: 3px;
+    padding-left: 7px;
+    padding-right: 7px;
+    text-align: center;
+}
+
+.Github-Login-Menu>div:hover {
+    background-color: #bbba;
+}
+
+.Github-Login-Usercenter {
+    border-bottom: 1px dashed #393939;
+    border-radius: 5px 5px 0 0;
+}
+
+.Github-Login-Logout {
+    border-top: 1px dashed #393939;
+    border-radius: 0 0 5px 5px;
 }

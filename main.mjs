@@ -22,6 +22,9 @@ async function run(loadFromStorage) {
             drawLoginIcon: true,
         },
     });
+
+    for(let i=0;i<10;i++)
+        cm.setDomComment(i,i);
 }
 
-run(true);
+run(false);

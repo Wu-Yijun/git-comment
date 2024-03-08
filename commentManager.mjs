@@ -32,11 +32,11 @@ const DefaultConsts = {
 function otouri(obj) {
     let res = {};
     for (let item in obj) {
-        if (obj[item] instanceof String) {
+        if (obj[item] instanceof String || typeof obj[item] == 'string') {
             res[item] = encodeURIComponent(obj[item]);
         } else if (obj[item] instanceof Date) {
             res[item] = encodeURIComponent(obj[item].toISOString());
-        } else if (obj[item] instanceof Object) {
+        } else if (obj[item] instanceof Object || typeof obj[item] == 'object') {
             res[item] = otouri(obj[item]);
         } else {
             res[item] = obj[item];
@@ -48,9 +48,9 @@ function otouri(obj) {
 function uritoo(obj) {
     let res = {};
     for (let item in obj) {
-        if (typeof obj[item] === 'string') {
+        if (obj[item] instanceof String || typeof obj[item] == 'string') {
             res[item] = decodeURIComponent(obj[item]);
-        } else if (typeof obj[item] == 'object') {
+        } else if (obj[item] instanceof Object || typeof obj[item] == 'object') {
             res[item] = uritoo(obj[item]);
         } else {
             res[item] = obj[item];
@@ -428,9 +428,22 @@ class ReplyControl {
                                 date: new Date(),
                                 text: '该引文内容无法正常显示',
                             })
-                            .then(() => {myFloatingNotify('Success in creating comment!')});
+                            .then(() => {
+                                myFloatingNotify('Success in creating comment!');
+                                textarea.innerHTML = '';
+                            });
                     }
-            })
+            });
+            setACTION(cc, 'comment-textarea-save', (save) => {
+                save.onclick = () => {
+                    myFloatingNotify('此功能尚未完成');
+                };
+            });
+            setACTION(cc, 'comment-textarea-preview', (preview) => {
+                preview.onclick = () => {
+                    myFloatingNotify('此功能尚未完成');
+                };
+            });
         });
     }
 }
@@ -453,7 +466,7 @@ export default class commentManager {
             this.addJson(j);
         }
         config.json = null;
-        for (let i = 0; i < this.numberPerPage; i++) {
+        for (let i = 0; i < this.config.numberPerPage; i++) {
             this.appendDom();
         }
     }
@@ -488,7 +501,7 @@ export default class commentManager {
         text: '该正文内容无法正常显示，请稍后重试或联系开发者.....',
     };
     doms = [];
-    // comments
+    commentsNum = 0;
     comments = [];
 
     addJson(j) {
@@ -504,24 +517,24 @@ export default class commentManager {
     }
     appendDom() {
         let a = this.sampleDom.cloneNode(true);
-        this.domContainer.append(a);
-        this.doms.push(this.domContainer.lastChild);
-        this.domContainer.lastChild.style.display = 'none';
+        this.config.domContainer.append(a);
+        this.doms.push(this.config.domContainer.lastChild);
+        this.config.domContainer.lastChild.style.display = 'none';
     }
     async newComment(text, quote) {
         await this.getCommentNum();
         const qt = {};
-        Object.assign(qt, quote);
         Object.assign(qt, this.defaultComment.quote);
+        Object.assign(qt, quote);
         const comment = {
-            request: true,
+            requested: true,
             valid: true,
             deleted: false,
             hide: false,
             id: this.commentsNum,
             username: this.gitControl.userInfo.login,
-            usericon: this.gitControl.avatar_url,
-            userid: this.gitControl.id,
+            usericon: this.gitControl.userInfo.avatar_url,
+            userid: this.gitControl.userInfo.id,
             date: new Date(),
             text: text,
             quote: qt,
@@ -533,7 +546,7 @@ export default class commentManager {
     }
     async getCommentNum() {
         const num = await this.gitControl.asynGetCommentNum();
-        if(num > this.commentsNum)
+        if (num > this.commentsNum)
             this.commentsNum = num;
         return this.commentsNum;
     }
@@ -546,14 +559,14 @@ export default class commentManager {
     getDom(index) {
         if (index < 0)
             index = 0;
-        if (index >= this.numberPerPage)
-            index = this.numberPerPage - 1;
+        if (index >= this.config.numberPerPage)
+            index = this.config.numberPerPage - 1;
         return this.doms[index];
     }
     setDomComment(index, id) {
         const comment = this.getComment(id);
         const dom = this.getDom(index);
-        if (comment.requested && comment.valid && (!comment.deleted)) {
+        if (comment && comment.requested && comment.valid && (!comment.deleted)) {
             // valid
             dom.style.display = comment.hide ? 'none' : 'block';
         } else {
@@ -589,20 +602,21 @@ export default class commentManager {
                 el.style.display = 'none';
             });
         }
-        setHTML(dom, 'comment-entry', comment.text);
-        let overflowed = false;
         setACTION(dom, 'comment-entry', (el) => {
-            if (el.clientHeight < el.scrollHeight)
-                overflowed = true;
+            el.innerHTML = comment.text;
+            if (el.clientHeight < el.scrollHeight) {
+                setACTION(dom, 'comment-op-expand', (expand) => {
+                    expand.style.display = 'block';
+                    expand.onclick = () => {
+                        expand.style.display = 'none';
+                        el.style.webkitLineClamp = 'unset';
+                    }
+                });
+            } else {
+                setACTION(dom, 'comment-op-expand', (expand) => {
+                    expand.style.display = 'none';
+                });
+            }
         });
-        if (overflowed) {
-            setACTION(dom, 'comment-op-expand', (el) => {
-                el.style.display = 'block';
-            });
-        } else {
-            setACTION(dom, 'comment-op-expand', (el) => {
-                el.style.display = 'none';
-            });
-        }
     }
 }
