@@ -426,6 +426,10 @@
     overflow: hidden;
     word-break: break-all;
     white-space: nowrap;
+
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
 }
 
 .comment-textarea-button:hover {

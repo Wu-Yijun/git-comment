@@ -1,20 +1,36 @@
 import generateLoremText from "./helper.mjs";
 import myFloatingNotify from "/MyFloatingNotify.js";
 
-const DefaultSampleGitLogin = {
+const DefaultConsts = {
+    TopUrl: "https://wu-yijun.github.io/",
+    UserHomeUrl: "/UserHome",
+    UserHomeUrl: "/UserHome",
     log: `  <img src="/Login.svg" height="20px">
             登录
             <img src="/GitHubR.svg" height="15px">
             <img src="/GithubIcon.svg" height="25px">`,
     user: ` <img class="Github-Login-User-Icon" src="/GithubIcon.svg" height="25px">
-            <div class="Github-Login-User-Name">UserName</div>`,
+            <div class="Github-Login-User-Name">UserName</div>
+            <div class="Github-Login-Menu-Container">
+                <div class="Github-Login-Menu">
+                    <div class="Github-Login-Usercenter">
+                        <div>个人中心</div>
+                    </div>
+                    <div class="Github-Login-Homepage">
+                        <div>Github主页</div>
+                    </div>
+                    <div class="Github-Login-Logout">
+                        <div>登出</div>
+                    </div>
+                </div>
+            </div>`,
 };
 
 class GitControl {
     oauthInfo = {
         Owner: "Wu-Yijun",
         Repo: "git-comment",
-        Issue: "2",
+        Issue: "4",
         CorsUrl: "https://cors-anywhere.azm.workers.dev/",
         // CorsUrl: "https://cors-anywhere.herokuapp.com/",
         Scope: "public_repo",
@@ -28,7 +44,8 @@ class GitControl {
         /** Debug */
         ClientID: "16fbb434c9ac82d2bb67",
         ClientSecret: "37b893febb019776f791e3db171b9fcf6d0e9fcc",
-        Url: "http://localhost:5500/testGitLogin/main.html",
+        // Url: "http://localhost:5500/testGitLogin/main.html",
+        Url: "http://localhost:5500/main.html",
     };
     access_token = "";
     userInfo = {};
@@ -37,9 +54,9 @@ class GitControl {
     constructor(oauthInfo) {
         Object.assign(this.oauthInfo, oauthInfo);
 
-        document.getElementById("SubmitComment").onclick = () => {
-            this.CreateComment(document.getElementById("CommentArea").value);
-        };
+        // document.getElementById("SubmitComment").onclick = () => {
+        //     this.CreateComment(document.getElementById("CommentArea").value);
+        // };
 
         this.access_token = localStorage.getItem("access_token");
         if (this.access_token && (typeof this.access_token === "string" || this.access_token instanceof String) && this.access_token.length > 0) {
@@ -57,9 +74,9 @@ class GitControl {
         }
         if (logged) {
             myFloatingNotify(" code = " + code);
-            getAuthorization(code);
+            this.getAuthorization(code);
         } else {
-            enableLogin();
+            this.enableLogin();
         }
     };
 
@@ -109,33 +126,97 @@ class GitControl {
     }
 
     enableLogin(reset = false) {
-        Array.prototype.forEach.call(document.getElementsByClassName("GitLoginClass"), (dom) => {
-            if(reset)
-                dom.innerHTML = DefaultSampleGitLogin.log;
-            dom.onclick = () => {
-                location.href = GitControl.GithubAuthUrl + "?"
-                    + `client_id=${this.oauthInfo.ClientID}` + "&"
-                    + `redirect_uri=${this.oauthInfo.Url}` + "&"
-                    + `scope=${this.oauthInfo.Scope}`;
-            };
+        Array.prototype.forEach.call(document.getElementsByClassName(this.oauthInfo.GitLoginClass), (dom) => {
+            if (reset)
+                dom.innerHTML = DefaultConsts.log;
+            setTimeout(() => {
+                dom.onclick = () => {
+                    location.href = GitControl.GithubAuthUrl + "?"
+                        + `client_id=${this.oauthInfo.ClientID}` + "&"
+                        + `redirect_uri=${this.oauthInfo.Url}` + "&"
+                        + `scope=${this.oauthInfo.Scope}`;
+                };
+            }, reset ? 1000 : 0);
         });
         myFloatingNotify("You can login to github");
     }
 
+    userInfo = {
+        /*icon*/
+        avatar_url: "https://avatars.githubusercontent.com/u/126391865?v=4",    // 1234
+        // name
+        login: "Wu-Yijun",
+        // github id
+        id: 126391865,
+        // homepage
+        html_url: "https://github.com/Wu-Yijun",
+    };
     // also disable login
     showInfo() {
-        if(!this.loggedin){
+        if (!this.loggedin) {
             myFloatingNotify("You are not logged in yet!!", 2000);
             this.enableLogin(true);
             return;
         }
-        Array.prototype.forEach.call(document.getElementsByClassName("GitLoginClass"), (dom) => {
-            if(reset)
-                dom.innerHTML = DefaultSampleGitLogin.user;
-            dom.onclick = () => {
-            };
+        Array.prototype.forEach.call(document.getElementsByClassName(this.oauthInfo.GitLoginClass), (elem) => {
+            elem.onclick = null;
+            elem.innerHTML = DefaultConsts.user;
+            Array.prototype.forEach.call(
+                elem.getElementsByClassName("Github-Login-User-Icon"), (dom) => {
+                    dom.src = this.userInfo.avatar_url;
+                });
+            Array.prototype.forEach.call(
+                elem.getElementsByClassName("Github-Login-User-Name"), (dom) => {
+                    dom.innerText = this.userInfo.login;
+                });
+            Array.prototype.forEach.call(
+                elem.getElementsByClassName("Github-Login-Usercenter"), (dom) => {
+                    dom.onclick = (e) => {
+                        // 个人中心
+                        location.href = DefaultConsts.UserHomeUrl;
+                    };
+                });
+            Array.prototype.forEach.call(
+                elem.getElementsByClassName("Github-Login-Homepage"), (dom) => {
+                    dom.onclick = (e) => {
+                        // Github主页
+                        location.href = this.userInfo.html_url;
+                    };
+                });
+            Array.prototype.forEach.call(
+                elem.getElementsByClassName("Github-Login-Logout"), (dom) => {
+                    dom.onclick = (e) => {
+                        localStorage.removeItem("access_token");
+                        this.loggedin = false;
+                        this.userInfo = "";
+                        this.access_token = "";
+                        this.enableLogin(true);
+                        myFloatingNotify("退出登录！");
+                    };
+                });
+            // Show user menu
+            Array.prototype.forEach.call(
+                elem.getElementsByClassName("Github-Login-Menu"), (menu) => {
+                    let tm_out = null;
+                    elem.onmouseenter = () => {
+                        menu.style.display = "flex";
+                        menu.style.maxHeight = "100px";
+                        menu.style.opacity = 1;
+                        if (tm_out)
+                            clearTimeout(tm_out);
+                    };
+                    elem.onmouseleave = () => {
+                        menu.style.maxHeight = "0px";
+                        menu.style.opacity = 0;
+                        if (tm_out)
+                            clearTimeout(tm_out);
+                        tm_out = setTimeout(() => {
+                            menu.style.display = "none";
+                            tm_out = null;
+                        }, 2000);
+                    };
+                });
         });
-        myFloatingNotify("You can login to github");
     }
 
     getAuthorization(code) {
@@ -146,8 +227,8 @@ class GitControl {
         };
         const content = JSON.stringify({
             code: code,
-            client_id: oauthInfo.ClientID,
-            client_secret: oauthInfo.ClientSecret,
+            client_id: this.oauthInfo.ClientID,
+            client_secret: this.oauthInfo.ClientSecret,
         });
         GitControl.REQUEST("POST", url, header, content, (request) => {
             const info = JSON.parse(request.responseText);
@@ -171,6 +252,7 @@ class GitControl {
         const data = null;
         GitControl.REQUEST("GET", url, header, data, (request) => {
             let userInfo = null;
+            let failed = false;
             try {
                 userInfo = request.responseText;
                 userInfo = JSON.parse(userInfo);
@@ -283,6 +365,7 @@ function setACTION(dom, className, action) {
 
 export default class commentManager {
     constructor(info) {
+        this.GitControl = new GitControl();
         this.numberPerPage = info.numberPerPage || 10;
         this.sampleDom = parseToDOM(info.htmlString);
         this.sampleTextarea = parseToDOM(info.textarea);
