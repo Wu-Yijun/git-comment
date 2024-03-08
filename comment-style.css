@@ -5,6 +5,24 @@
     align-content: center;
 
     user-select: none;
+
+    transition: box-shadow ease-out 0.2s;
+}
+
+.comment-entry-container:hover {
+    box-shadow: #4fd2f2 0px 0px 7px 2px;
+}
+
+.comment-textarea-container {
+    margin: 10px;
+    border-radius: 10px;
+    background-color: #8db8e27d;
+    /* #9999; */
+    transition: box-shadow ease-out 0.2s;
+}
+
+.comment-textarea-container:hover {
+    box-shadow: #4f8ff2 0px 0px 7px 2px;
 }
 
 .comment-entry-header {
@@ -102,6 +120,7 @@
     text-overflow: ellipsis;
     overflow-y: hidden;
     -webkit-line-clamp: 5;
+    max-height: 20em;
     -webkit-box-orient: vertical;
 }
 
@@ -251,14 +270,6 @@
     user-select: none;
 }
 
-
-.comment-textarea-container {
-    margin: 10px;
-    border-radius: 10px;
-    background-color: #8db8e27d;
-    /* #9999; */
-    /* height: 100px; */
-}
 
 .comment-textarea-container .comment-textarea-header {
     font-size: large;
@@ -447,7 +458,6 @@
 .txt-de:hover {
     text-decoration: underline;
 }
-
 
 
 .Github-Login-Menu-Container {

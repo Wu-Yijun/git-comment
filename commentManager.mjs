@@ -260,21 +260,13 @@ class GitControl {
                 // Show user menu
                 Array.prototype.forEach.call(
                     elem.getElementsByClassName('Github-Login-Menu'), (menu) => {
-                        let tm_out = null;
                         elem.onmouseenter = () => {
                             menu.style.maxHeight = '100px';
                             menu.style.opacity = 1;
-                            if (tm_out)
-                                clearTimeout(tm_out);
                         };
                         elem.onmouseleave = () => {
                             menu.style.maxHeight = '0px';
                             menu.style.opacity = 0;
-                            if (tm_out)
-                                clearTimeout(tm_out);
-                            tm_out = setTimeout(() => {
-                                tm_out = null;
-                            }, 2000);
                         };
                     });
             });
@@ -405,6 +397,7 @@ class ReplyControl {
             container.append(node);
             const cc = container.lastChild;
             const id = ReplyControl.getUid();
+            const path = location.pathname;
             const textarea = cc.getElementsByClassName('comment-textarea-texts')[0];
             if (!(textarea)) {
                 return;
@@ -413,7 +406,6 @@ class ReplyControl {
                 submit.onclick =
                     () => {
                         const text = textarea.innerHTML;
-                        console.log('ready to submit-content:', text);
                         if (!this.config.git.loggedin) {
                             myFloatingNotify('You have not yet logged in');
                             return;
@@ -434,16 +426,22 @@ class ReplyControl {
                             });
                     }
             });
-            setACTION(cc, 'comment-textarea-save', (save) => {
-                save.onclick = () => {
-                    myFloatingNotify('此功能尚未完成');
-                };
-            });
             setACTION(cc, 'comment-textarea-preview', (preview) => {
                 preview.onclick = () => {
                     myFloatingNotify('此功能尚未完成');
                 };
             });
+            setACTION(cc, 'comment-textarea-save', (save) => {
+                save.onclick = () => {
+                    localStorage.setItem(
+                        `CommentTextareaCache[${id}]at<${encodeURIComponent(path)}>`,
+                        encodeURIComponent(textarea.innerHTML));
+                };
+            });
+            const loadedText =
+                localStorage.getItem(`CommentTextareaCache[${id}]at<${encodeURIComponent(path)}>`);
+            if (loadedText && loadedText.length > 0)
+                textarea.innerHTML = decodeURIComponent(loadedText);
         });
     }
 }
@@ -610,6 +608,7 @@ export default class commentManager {
                     expand.onclick = () => {
                         expand.style.display = 'none';
                         el.style.webkitLineClamp = 'unset';
+                        el.style.maxHeight = 'unset';
                     }
                 });
             } else {
