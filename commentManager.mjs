@@ -37,6 +37,8 @@ class GitControl {
 
         GitLoginClass: "Github-Login",
 
+        drawLoginIcon: false,
+
         /** Release */
         // ClientID: "dbcd04607ec374d71003",
         // ClientSecret: "10d91bdc6fc31ebccc2cf4a9a8f64365e78e24eb",
@@ -47,16 +49,15 @@ class GitControl {
         // Url: "http://localhost:5500/testGitLogin/main.html",
         Url: "http://localhost:5500/main.html",
     };
+    static GithubAuthUrl = "https://github.com/login/oauth/authorize";
+    static GithubAccessTokenUrl = "https://github.com/login/oauth/access_token";
+
     access_token = "";
     userInfo = {};
     loggedin = false;
 
     constructor(oauthInfo) {
         Object.assign(this.oauthInfo, oauthInfo);
-
-        // document.getElementById("SubmitComment").onclick = () => {
-        //     this.CreateComment(document.getElementById("CommentArea").value);
-        // };
 
         this.access_token = localStorage.getItem("access_token");
         if (this.access_token && (typeof this.access_token === "string" || this.access_token instanceof String) && this.access_token.length > 0) {
@@ -76,12 +77,9 @@ class GitControl {
             myFloatingNotify(" code = " + code);
             this.getAuthorization(code);
         } else {
-            this.enableLogin();
+            this.enableLogin(this.oauthInfo.drawLoginIcon);
         }
     };
-
-    static GithubAuthUrl = "https://github.com/login/oauth/authorize";
-    static GithubAccessTokenUrl = "https://github.com/login/oauth/access_token";
 
     static REQUEST(type = "POST", url, header, data, resposeFun, retried = 3) {
         var request = new XMLHttpRequest();
@@ -364,18 +362,18 @@ function setACTION(dom, className, action) {
 }
 
 export default class commentManager {
-    constructor(info) {
-        this.GitControl = new GitControl();
-        this.numberPerPage = info.numberPerPage || 10;
-        this.sampleDom = parseToDOM(info.htmlString);
-        this.sampleTextarea = parseToDOM(info.textarea);
-        this.domContainer = info.dom || document.getElementsByClassName("comment-contents")[0] || document.createElement("div");
+    constructor(config) {
+        this.GitControl = new GitControl(config.gitinfo);
+        this.numberPerPage = config.numberPerPage || 10;
+        this.sampleDom = parseToDOM(config.htmlString);
+        this.sampleTextarea = parseToDOM(config.textarea);
+        this.domContainer = config.dom || document.getElementsByClassName("comment-contents")[0] || document.createElement("div");
         this.doms = [];
         this.comments = [];
         this.textdoms = [];
 
         let i = 0;
-        for (let j of info.json) {
+        for (let j of config.json) {
             this.addJson(j);
         }
         for (let i = 0; i < this.numberPerPage; i++) {

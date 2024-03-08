@@ -15,11 +15,14 @@ async function run(loadFromStorage) {
         htmlString: hstr,
         textarea: textarea,
         json: cmjson,
+        gitinfo: {
+            drawLoginIcon: true,
+        },
     });
-    for (let i = 0; i < 2; i++)
-        cm.setDomComment(i, i);
+    // for (let i = 0; i < 2; i++)
+    //     cm.setDomComment(i, i);
 
-    
+
 }
 
 run(true);
