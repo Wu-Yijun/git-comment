@@ -127,9 +127,13 @@ class GitControl {
         let code = null;
         let logged = false;
         try {
-            code = new URLSearchParams(location.search).get('code');
-            if (code)
-                logged = true;
+            if (location.search) {
+                code = new URLSearchParams(location.search).get('code');
+                if (code)
+                    logged = true;
+                /** this will not reload pages. */
+                history.replaceState({code: code, search: location.search}, '', this.oauthInfo.Url);
+            }
         } catch (e) {
             console.log('Error: ', e);
         }
@@ -220,6 +224,10 @@ class GitControl {
             this.enableLogin(true);
             return;
         }
+        if (typeof location.search == 'string' && location.search.length > 0) {
+            /** this will not reload pages. */
+            history.replaceState({code: -1, search: location.search}, '', this.oauthInfo.Url);
+        }
         Array.prototype.forEach.call(
             document.getElementsByClassName(this.oauthInfo.GitLoginClass), (elem) => {
                 elem.onclick = null;
@@ -289,8 +297,6 @@ class GitControl {
                 myFloatingNotify('access_token = ' + info.access_token);
                 localStorage.setItem('access_token', info.access_token);
                 this.access_token = info.access_token;
-                /** this will not reload pages. */
-                history.replaceState({code: code}, '', this.oauthInfo.Url);
                 this.getInfo();
             }
         }, 1);
@@ -428,7 +434,29 @@ class ReplyControl {
             });
             setACTION(cc, 'comment-textarea-preview', (preview) => {
                 preview.onclick = () => {
-                    myFloatingNotify('此功能尚未完成');
+                    // myFloatingNotify('此功能尚未完成');
+                    const text = textarea.innerHTML;
+                    this.config.comment.setPreview({
+                        requested: true,
+                        valid: true,
+                        deleted: false,
+                        hide: false,
+                        id: this.config.comment.commentsNum,
+                        username: this.config.git.userInfo.login,
+                        usericon: this.config.git.userInfo.avatar_url,
+                        userid: this.config.git.userInfo.id,
+                        date: new Date(),
+                        text: text,
+                        quote: {
+                            exist: false,
+                            refered: false,
+                            id: -1,
+                            username: 'Anonymous',
+                            userid: -1,
+                            date: new Date(),
+                            text: '该引文内容无法正常显示',
+                        },
+                    })
                 };
             });
             setACTION(cc, 'comment-textarea-save', (save) => {
@@ -463,10 +491,18 @@ export default class commentManager {
         for (let j of config.json) {
             this.addJson(j);
         }
-        config.json = null;
+        delete config.json;
+
+        this.initPreviewDom();
         for (let i = 0; i < this.config.numberPerPage; i++) {
             this.appendDom();
         }
+
+        this.initActions();
+
+        this.getCommentNum().then((num)=>{
+            myFloatingNotify(`There are ${num} comments in total.`);
+        });
     }
     config = {
         numberPerPage: 10,
@@ -501,6 +537,9 @@ export default class commentManager {
     doms = [];
     commentsNum = 0;
     comments = [];
+    state = {
+        onPreviewing: false,
+    }
 
     addJson(j) {
         let json = {};
@@ -549,19 +588,31 @@ export default class commentManager {
         return this.commentsNum;
     }
     getComment(id) {
+        if (id instanceof Object) {
+            const cmt = {};
+            Object.assign(cmt, this.defaultComment);
+            Object.assign(cmt, id);
+            return cmt;
+        }
         if (id >= 0 && id < this.comments.length) {
             return this.comments[id];
         }
-        this.defaultComment;
+        return this.defaultComment;
     }
     getDom(index) {
+        if (index instanceof HTMLElement)
+            return index;
         if (index < 0)
             index = 0;
         if (index >= this.config.numberPerPage)
             index = this.config.numberPerPage - 1;
         return this.doms[index];
     }
-    setDomComment(index, id) {
+    // index can be index of dom Or it could be a dom node
+    // id can be id in comments Or it could be a js object of comment
+    setDomComment(index, id, config = {
+        useExpand: true,
+    }) {
         const comment = this.getComment(id);
         const dom = this.getDom(index);
         if (comment && comment.requested && comment.valid && (!comment.deleted)) {
@@ -571,7 +622,6 @@ export default class commentManager {
             // invalid
             return;
         }
-
         setHTML(dom, 'comment-icon', `<img src="${comment.usericon}">`);
         setHTML(dom, 'comment-user', comment.username);
         setHTML(dom, 'comment-date', comment.date.toLocaleString());
@@ -602,9 +652,11 @@ export default class commentManager {
         }
         setACTION(dom, 'comment-entry', (el) => {
             el.innerHTML = comment.text;
-            if (el.clientHeight < el.scrollHeight) {
+            if (config.useExpand && el.clientHeight < el.scrollHeight) {
                 setACTION(dom, 'comment-op-expand', (expand) => {
                     expand.style.display = 'block';
+                    el.style.webkitLineClamp = '5';
+                    el.style.maxHeight = '20em';
                     expand.onclick = () => {
                         expand.style.display = 'none';
                         el.style.webkitLineClamp = 'unset';
@@ -614,8 +666,67 @@ export default class commentManager {
             } else {
                 setACTION(dom, 'comment-op-expand', (expand) => {
                     expand.style.display = 'none';
+                    el.style.webkitLineClamp = 'unset';
+                    el.style.maxHeight = 'unset';
                 });
             }
         });
+    }
+    initPreviewDom() {
+        let a = this.sampleDom.cloneNode(true);
+        const pv = document.createElement('div');
+        pv.className = 'comment-preview-container';
+        pv.style.display = 'none';
+        pv.appendChild(a);
+        pv.addEventListener('click', (e) => {
+            this.removePreview(pv);
+            e.stopPropagation();
+        });
+        pv.firstChild.onclick = (e) => {
+            e.stopPropagation();
+        };
+
+        setACTION(pv, 'comment-op-expand', (expand) => {
+            expand.style.display = 'none';
+        });
+        this.config.domContainer.append(pv);
+        this.doms.preview = this.config.domContainer.lastChild;
+        // this.config.domContainer.lastChild.style.display = 'none';
+    }
+    setPreview(comment) {
+        if (this.rmv) {
+            clearTimeout(this.rmv);
+            this.rmv = null;
+        }
+        this.setDomComment(this.doms.preview, comment, {
+            useExpand: false,
+        });
+        this.doms.preview.style.display = 'flex';
+        setTimeout(() => {
+            this.doms.preview.style.opacity = 1.0;
+        });
+        this.state.onPreviewing = true;
+    }
+    removePreview() {
+        if (this.rmv) {
+            clearTimeout(this.rmv);
+            this.rmv = null;
+        }
+        this.rmv = setTimeout(() => {
+            this.doms.preview.style.display = 'none';
+            this.rmv = null;
+        }, 300);
+        this.doms.preview.style.opacity = 0.0;
+        this.state.onPreviewing = false;
+    }
+
+    initActions() {
+        document.onkeydown = (e) => {
+            if (this.state.onPreviewing &&
+                (e.code === 'Escape' || e.code === 'Space' || e.code === 'Backspace' ||
+                 e.code === 'Enter')) {
+                this.removePreview();
+            }
+        };
     }
 }
