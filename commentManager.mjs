@@ -1,4 +1,4 @@
-import myFloatingNotify from '/MyFloatingNotify.js';
+import myFloatingNotify from './MyFloatingNotify.js'
 
 const DefaultConsts = {
     TopUrl: 'https://wu-yijun.github.io/',
@@ -25,8 +25,6 @@ const DefaultConsts = {
         </div>`,
     maxPerPage: 10,
 };
-
-
 
 function otouri(obj) {
     let res = {};
@@ -130,13 +128,17 @@ class GitControl {
     userInfo = {};
     loggedin = false;
 
+    isAccessToken() {
+        return this.access_token &&
+            (typeof this.access_token === 'string' || this.access_token instanceof String) &&
+            this.access_token.length > 0;
+    }
+
     constructor(oauthInfo) {
         Object.assign(this.oauthInfo, oauthInfo);
 
         this.access_token = localStorage.getItem('access_token');
-        if (this.access_token &&
-            (typeof this.access_token === 'string' || this.access_token instanceof String) &&
-            this.access_token.length > 0) {
+        if (this.isAccessToken()) {
             this.getInfo();
             return;
         }
@@ -385,6 +387,9 @@ class GitControl {
         const header = {
             'Accept': 'application/json',
         };
+        if (this.isAccessToken()) {
+            header['Authorization'] = 'token ' + this.access_token;
+        }
         const jsons = [];
         let num = info.num;
         for (let i = 0; i < info.num; i++) {
@@ -411,10 +416,25 @@ class GitControl {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
         };
+        if (this.isAccessToken()) {
+            header['Authorization'] = 'token ' + this.access_token;
+        }
         const data = null;
         return new Promise((resolve, reject) => {
             GitControl.REQUEST('GET', url, header, data, (request) => {
                 try {
+                    if (request.status != 200) {
+                        myFloatingNotify(
+                            'Network error:' + JSON.parse(request.responseText).message, 5000);
+                        if (request.status == 403) {
+                            setHTML(
+                                document, 'comment-contents',
+                                'Access denied.<br>' +
+                                    'Try to login to Github and refresh the page.<br>' +
+                                    JSON.parse(request.responseText).message);
+                        }
+                        reject('Network error');
+                    }
                     const number = Number(JSON.parse(request.responseText).comments);
                     if (number && number >= 0) {
                         resolve(number);

@@ -3,7 +3,6 @@
 
 <head>
     <link href="./comment-style.css" rel="stylesheet" type="text/css">
-    <script type="module" src="./main.mjs"></script>
     <style>
         body {
             margin: 0;
@@ -38,6 +37,39 @@
         </div>
 
     </div>
+
+    <script type="module">
+        import commentManager from './commentManager.mjs';
+        const cm = new commentManager({
+            // domContainer
+            htmlString: await (await fetch('./comment-item.html')).text(),
+            htmlTextarea: await (await fetch('./comment-textarea-item.html')).text(),
+            gitinfo: {
+                Owner: 'Wu-Yijun',
+                Repo: 'git-comment',
+                Issue: '4',
+                CorsUrl: 'https://cors-anywhere.azm.workers.dev/',
+                Scope: 'public_repo',
+
+                GitLoginClass: 'Github-Login',
+
+                
+                drawLoginIcon: true,
+
+                /** Release */
+                // ClientID: "dbcd04607ec374d71003",
+                // ClientSecret: "10d91bdc6fc31ebccc2cf4a9a8f64365e78e24eb",
+                // Url: "https://wu-yijun.github.io/testGitLogin/main",
+                /** Debug */
+                ClientID: '16fbb434c9ac82d2bb67',
+                ClientSecret: '37b893febb019776f791e3db171b9fcf6d0e9fcc',
+                // Url: "http://localhost:5500/testGitLogin/main.html",
+                Url: 'http://localhost:5500/main',
+            },
+        });
+    </script>
+    <script>
+    </script>
 </body>
 
 </html>
