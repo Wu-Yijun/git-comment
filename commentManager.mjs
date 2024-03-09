@@ -1,7 +1,5 @@
 import myFloatingNotify from '/MyFloatingNotify.js';
 
-import generateLoremText from './helper.mjs';
-
 const DefaultConsts = {
     TopUrl: 'https://wu-yijun.github.io/',
     UserHomeUrl: '/UserHome',
@@ -25,6 +23,7 @@ const DefaultConsts = {
                 </div>
             </div>
         </div>`,
+    maxPerPage: 10,
 };
 
 
@@ -83,6 +82,23 @@ function setACTION(dom, className, action) {
     Array.prototype.forEach.call(dom.getElementsByClassName(className), action);
 }
 
+
+/**
+ * e.g. From 13 to 25
+ * At least 13.14...24
+ * Start from 0
+ *  */
+function splitPages(from, to, maxPerPage = DefaultConsts.maxPerPage) {
+    const info = {per_page: maxPerPage, page: 0, num: 1};
+    if (from + 1 >= to) {
+        info.per_page = 1;
+        info.page = from + 1;
+    } else {
+        info.page = Math.round(from / maxPerPage);
+        info.num = Math.round(to / maxPerPage) - Math.round(from / maxPerPage) + 1;
+    }
+    return info;
+}
 
 class GitControl {
     oauthInfo = {
@@ -147,7 +163,10 @@ class GitControl {
 
     static REQUEST(type = 'POST', url, header, data, resposeFun, retried = 3) {
         var request = new XMLHttpRequest();
-        request.open(type, url, true);
+        if (type === 'GET' && data)
+            request.open(type, url + '?' + (new URLSearchParams(data)).toString(), true);
+        else
+            request.open(type, url, true);
         request.timeout = 0;
         request.onreadystatechange = () => {
             if (!request || request.readyState !== 4) {
@@ -359,13 +378,38 @@ class GitControl {
         GitControl.REQUEST('POST', url, header, data, callback);
     }
 
+    GetComments(from, to, callback) {
+        const info = splitPages(from, to);
+        const url = `https://api.github.com/repos/${this.oauthInfo.Owner}/${
+            this.oauthInfo.Repo}/issues/${this.oauthInfo.Issue}/comments`;
+        const header = {
+            'Accept': 'application/json',
+        };
+        const jsons = [];
+        let num = info.num;
+        for (let i = 0; i < info.num; i++) {
+            GitControl.REQUEST(
+                'GET', url, header, {
+                    per_page: info.per_page,
+                    page: info.page + i + 1,
+                },
+                (response) => {
+                    const json_i = JSON.parse(response.responseText);
+                    for (let j = 0; j < info.per_page; j++)
+                        jsons[i * info.per_page + j] = json_i[j];
+                    if (--num == 0) {
+                        callback(jsons);
+                    }
+                });
+        }
+    }
+
     asynGetCommentNum() {
         const url = `https://api.github.com/repos/${this.oauthInfo.Owner}/${
             this.oauthInfo.Repo}/issues/${this.oauthInfo.Issue}`;
         const header = {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'Authorization': 'token ' + this.access_token,
         };
         const data = null;
         return new Promise((resolve, reject) => {
@@ -408,29 +452,45 @@ class ReplyControl {
             if (!(textarea)) {
                 return;
             }
-            setACTION(cc, 'comment-textarea-submit', (submit) => {
-                submit.onclick =
-                    () => {
-                        const text = textarea.innerHTML;
-                        if (!this.config.git.loggedin) {
-                            myFloatingNotify('You have not yet logged in');
-                            return;
+            const toSubmit = () => {
+                const text = textarea.innerHTML;
+                if (!this.config.git.loggedin) {
+                    myFloatingNotify('You have not yet logged in');
+                    return;
+                }
+                if (text.length < 5) {
+                    myFloatingNotify('Please enter at least 5 characters...');
+                    return;
+                }
+
+                this.config.comment
+                    .newComment(text, {
+                        exist: false,
+                        refered: false,
+                        id: -1,
+                        username: 'Anonymous',
+                        userid: -1,
+                        date: new Date(),
+                        text: '该引文内容无法正常显示',
+                    })
+                    .then((response) => {
+                        myFloatingNotify('Success in creating comment!');
+                        textarea.innerHTML = '';
+                        localStorage.removeItem(
+                            `CommentTextareaCache[${id}]at<${encodeURIComponent(path)}>`);
+                    });
+            };
+            setACTION(cc, 'comment-textarea-texts', (txt) => {
+                txt.onkeydown =
+                    (key) => {
+                        if ((key.isTrusted && key.code == 'Enter' && key.ctrlKey) && !key.metaKey &&
+                            !key.repeat && !key.shiftKey && !key.altKey) {
+                            toSubmit();
                         }
-                        this.config.comment
-                            .newComment(text, {
-                                exist: false,
-                                refered: false,
-                                id: -1,
-                                username: 'Anonymous',
-                                userid: -1,
-                                date: new Date(),
-                                text: '该引文内容无法正常显示',
-                            })
-                            .then(() => {
-                                myFloatingNotify('Success in creating comment!');
-                                textarea.innerHTML = '';
-                            });
                     }
+            })
+            setACTION(cc, 'comment-textarea-submit', (submit) => {
+                submit.onclick = toSubmit;
             });
             setACTION(cc, 'comment-textarea-preview', (preview) => {
                 preview.onclick = () => {
@@ -486,24 +546,36 @@ export default class commentManager {
             sampleTextarea: parseToDOM(this.config.htmlTextarea),
         });
         this.sampleDom = parseToDOM(this.config.htmlString);
-
-        let i = 0;
-        for (let j of config.json) {
-            this.addJson(j);
+        if (location.hash) {
+            this.config.hash = location.hash;
+            location.hash = '';
         }
-        delete config.json;
 
         this.initPreviewDom();
-        for (let i = 0; i < this.config.numberPerPage; i++) {
-            this.appendDom();
-        }
-
         this.initActions();
 
-        this.getCommentNum().then((num)=>{
+        this.getCommentNum().then((num) => {
             myFloatingNotify(`There are ${num} comments in total.`);
+            this.gitControl.GetComments(0, num, (jss) => {
+                for (let i = 0; i < num; i++) {
+                    const id = this.addJson(jss[i]);
+                    const index = this.appendDom();
+                    this.setDomComment(index, id);
+                }
+                jss.length = 0;
+                setTimeout(() => this.onload());
+            });
         });
     }
+
+    onload() {
+        if (this.config.hash) {
+            const hashs = this.config.hash.match(/Comment[0-9]+/g);
+            if (hashs.length > 0)
+                location.hash = hashs[0];
+        }
+    }
+
     config = {
         numberPerPage: 10,
         domContainer: document.getElementsByClassName('comment-contents')[0] ||
@@ -511,6 +583,7 @@ export default class commentManager {
         gitinfo: null,
         htmlTextarea: null,
         htmlString: null,
+        hash: null,
     };
     defaultComment = {
         requested: false,            /** if this item is requested */
@@ -534,6 +607,7 @@ export default class commentManager {
         },
         text: '该正文内容无法正常显示，请稍后重试或联系开发者.....',
     };
+    sampleDom = null;
     doms = [];
     commentsNum = 0;
     comments = [];
@@ -546,17 +620,18 @@ export default class commentManager {
         Object.assign(json, this.defaultComment);
         try {
             Object.assign(json, jsontoo(j.body));
-            console.log(json);
         } catch (e) {
-            console.log('Processing body of #' + json.id + ' interrupted with error:\n', e);
+            console.warn('Processing body of #' + json.id + ' interrupted with error:\n', e);
         }
-        this.comments.push(json);
+        this.comments[json.id] = json;
+        return json.id;
     }
     appendDom() {
         let a = this.sampleDom.cloneNode(true);
         this.config.domContainer.append(a);
         this.doms.push(this.config.domContainer.lastChild);
         this.config.domContainer.lastChild.style.display = 'none';
+        return this.doms.length - 1;
     }
     async newComment(text, quote) {
         await this.getCommentNum();
@@ -578,7 +653,12 @@ export default class commentManager {
         };
         this.comments[this.gitControl.id] = comment;
         this.gitControl.CreateComment(otojson(comment), (response) => {
-            console.log(JSON.parse(response.responseText));
+            // console.log(JSON.parse(response.responseText));
+            const id = this.addJson(JSON.parse(response.responseText));
+            const index = this.appendDom();
+            this.setDomComment(index, id);
+            this.commentsNum++;
+            delete response.responseText;
         });
     }
     async getCommentNum() {
@@ -604,8 +684,8 @@ export default class commentManager {
             return index;
         if (index < 0)
             index = 0;
-        if (index >= this.config.numberPerPage)
-            index = this.config.numberPerPage - 1;
+        if (index >= this.comments.length)
+            index = this.comments.length - 1;
         return this.doms[index];
     }
     // index can be index of dom Or it could be a dom node
@@ -624,8 +704,9 @@ export default class commentManager {
         }
         setHTML(dom, 'comment-icon', `<img src="${comment.usericon}">`);
         setHTML(dom, 'comment-user', comment.username);
-        setHTML(dom, 'comment-date', comment.date.toLocaleString());
+        setHTML(dom, 'comment-date', new Date(comment.date).toLocaleString());
         setHTML(dom, 'comment-id', '#' + comment.id);
+        dom.id = 'Comment' + comment.id;
         if (comment.quote.exist) {
             setACTION(dom, 'comment-quote-text', (el) => {
                 el.innerText = comment.quote.text;
@@ -722,10 +803,12 @@ export default class commentManager {
 
     initActions() {
         document.onkeydown = (e) => {
-            if (this.state.onPreviewing &&
-                (e.code === 'Escape' || e.code === 'Space' || e.code === 'Backspace' ||
-                 e.code === 'Enter')) {
-                this.removePreview();
+            if (this.state.onPreviewing) {
+                if (e.code === 'Escape' || e.code === 'Space' || e.code === 'Backspace' ||
+                    e.code === 'Enter') {
+                    this.removePreview();
+                }
+                return;
             }
         };
     }

@@ -13,6 +13,10 @@
     box-shadow: #4fd2f2 0px 0px 7px 2px;
 }
 
+.comment-entry-container:target {
+    box-shadow: #75f24f 0px 0px 7px 2px;
+}
+
 .comment-textarea-container {
     margin: 10px;
     border-radius: 10px;
@@ -150,7 +154,7 @@
 }
 
 
-.comment-entry-footer .comment-op-like-dis{
+.comment-entry-footer .comment-op-like-dis {
     display: inline-flex;
 }
 
@@ -246,6 +250,11 @@
     min-height: 10px;
 }
 
+.comment-container .comment-textarea-content {
+    margin-left: 10px;
+    margin-right: 10px;
+}
+
 .comment-container .comment-textarea {
     width: auto;
     /* width: 100%; */
@@ -323,9 +332,11 @@
     padding: 5px 15px 5px 15px;
     border: 1px dashed gray;
     border-radius: 20px;
-    background-color: #19d2ad38;
+    background-color: #19d2ad26;
 
     font-weight: bold;
+
+    display: none;
 }
 
 .comment-textarea-quote-text {
@@ -523,7 +534,7 @@
     border-radius: 0 0 5px 5px;
 }
 
-.comment-preview-container{
+.comment-preview-container {
     position: fixed;
     background-color: #000a;
     top: 0;
@@ -531,7 +542,7 @@
     left: 0;
     right: 0;
     z-index: 100;
-    
+
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
@@ -550,7 +561,7 @@
 }
 
 
-.comment-preview-container>.comment-entry-container{
+.comment-preview-container>.comment-entry-container {
     margin: 0;
     margin-top: auto;
     margin-bottom: auto;
@@ -562,14 +573,15 @@
     overflow-x: hidden; */
 }
 
-.comment-preview-container>.comment-entry-container>.comment-entry-contents{
+.comment-preview-container>.comment-entry-container>.comment-entry-contents {
     background-color: white;
 }
 
-.comment-preview-container>.comment-entry-container>.comment-entry-contents>.comment-op-expand{
+.comment-preview-container>.comment-entry-container>.comment-entry-contents>.comment-op-expand {
     display: none;
 }
-.comment-preview-container>.comment-entry-container>.comment-entry-contents>.comment-entry{
+
+.comment-preview-container>.comment-entry-container>.comment-entry-contents>.comment-entry {
     overflow-x: scroll;
     -webkit-line-clamp: unset;
     max-height: unset;
